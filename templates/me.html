@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MyPage</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="static/css/style.css" />
+  </head>
+  <body>
+    <p id="info">test</p>
+    <div>
+      <button id="getter" class="btn btn-primary rounded submit px-3"></button>
+    </div>
+  </body>
+  <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+  <script
+    type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"
+  ></script>
+  <script src="../static/js/popper.js"></script>
+  <script src="../static/js/bootstrap.min.js"></script>
+  <script src="../static/js/main.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function ($) {
+      $("#getter").on("click", function () {
+        console.log($.cookie("access_token"));
+        $.ajax({
+          url: "http://localhost:8000/me",
+          method: "GET",
+          contentType: false,
+          processData: false,
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: "Bearer" + $.cookie("access_token"),
+          },
+          success: function (response) {
+            alert("get Succeed!");
+            // $.cookie("access_token", response.access_token);
+            $("p").append(response.email);
+            $("p").append(response.username);
+          },
+          error: function (response) {
+            alert(response["detail"]);
+          },
+        });
+      });
+    });
+  </script>
+</html>
