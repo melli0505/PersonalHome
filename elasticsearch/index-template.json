@@ -1,0 +1,103 @@
+{
+  "index_patterns": "postgres*",
+  "settings": {
+    "analysis": {
+      "char_filter": {
+        "default_character_filter": {
+          "type": "html_strip"
+        }
+      },
+      "tokenizer": {
+        "korean_nori_tokenizer": {
+          "type": "nori_tokenizer",
+          "decompound_mode": "mixed"
+        },
+        "custom-edge-ngram": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 10,
+          "token_chars": ["letter", "digit"]
+        }
+      },
+      "filter": {
+        "nori_posfilter": {
+          "type": "nori_part_of_speech",
+          "stoptags": [
+            "J",
+            "E",
+            "NNB",
+            "MAJ",
+            "MM",
+            "XSV",
+            "XSA",
+            "VCP",
+            "SE",
+            "XSN",
+            "VCN",
+            "SP",
+            "NA",
+            "UNA",
+            "VSV",
+            "XPN",
+            "IC",
+            "VV"
+          ]
+        },
+        "ngram_filter": {
+          "type": "edge_ngram",
+          "min_gram": 1,
+          "max_gram": 10
+        }
+      },
+      "analyzer": {
+        "nori_analyzer": {
+          "type": "custom",
+          "char_filter": ["html_strip"],
+          "tokenizer": "korean_nori_tokenizer",
+          "filter": ["lowercase", "nori_posfilter"]
+        },
+        "edge_ngram_analyzer": {
+          "type": "custom",
+          "char_filter": ["html_strip"],
+          "tokenizer": "edge-ngram",
+          "filter": ["ngram_filter", "lowercase", "word_delimiter"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "title": {
+        "type": "text",
+        "analyzer": "edge_ngram_analyzer",
+        "field": {
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "content": {
+        "type": "text",
+        "analyzer": "edge_ngram_analyzer",
+        "field": {
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "id": {
+        "type": "long",
+        "analyzer": "edge_ngram_analyzer"
+      },
+      "writer": {
+        "type": "keyword",
+        "analyzer": "edge_ngram_analyzer"
+      },
+      "time": {
+        "type": "date"
+      }
+    }
+  }
+}
