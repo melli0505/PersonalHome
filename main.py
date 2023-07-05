@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.orm import Session
 from elasticsearch import Elasticsearch # , RequestsHttpConnection
+from elasticsearch_dsl import Search, Q, Index
 
 from core.db import models, schemas
 from core.db.base import SessionLocal, engine
@@ -73,19 +74,25 @@ def posting_page(request: Request):
 @app.get('/posts')
 def show_post(post_id: int, request: Request):
     return templates.TemplateResponse("view.html", {"request": request, "post_id": post_id})
+
+@app.get('/search-result')
+def show_post(query: str, request: Request):
+    return templates.TemplateResponse("search_result.html", {"request": request, "query": query})
     
 @app.get('/search')
 async def search(query: str):
-    search_body = {
-        "query": {
-            "match_all": {
-                
-            }
-        }
-    }
-    response = es.search(index="logs-generic-*", body=search_body)
-    results = response['hits']['hits']
-    return {"result": results}
+    s = Search(index="postgres", using=es)
+    s = s.query(
+        'multi_match',
+        query=query,
+        fields=["title", "content"],
+        operator="and"
+        )
+    results = s.execute()
+    results = []
+    for hit in s.scan():
+        results.append(hit)
+    return {"result": results} #.to_dict()}
 
 
 # login
