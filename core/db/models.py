@@ -22,3 +22,9 @@ class Content(Base):
     title = Column(Text, index=True)
     content = Column(Text, index=True)
     writer = Column(String, ForeignKey("users.username"))
+
+class Keyword(Base):
+    __tablename__ = "keywords"
+
+    id = Column(Integer, primary_key=True, index=True)
+    keyword = Column(String, index=True)

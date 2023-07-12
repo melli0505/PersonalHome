@@ -35,3 +35,15 @@ class User(UserBase):
     class Config:
         orm_mode = True
 
+# keyword
+class KeywordBase(BaseModel):
+    keyword: str
+
+class KeywordCreate(KeywordBase):
+    pass
+
+class Keyword(KeywordBase):
+    id: int
+    
+    class Config:
+        orm_mode = True
