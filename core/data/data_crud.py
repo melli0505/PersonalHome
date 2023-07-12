@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 
-from core.db import models, schemas
-from core.utils import utils
+from core.db import models, schemas, analyzer
 from core.user import user_crud
 
 def get_content(db:Session):
@@ -23,6 +22,9 @@ def create_content(db: Session, content: schemas.ContentCreate):
 
     db_user = user_crud.get_user_by_username(db=db, username=content.writer) #TODO: current user
     db_content = models.Content(time=content.time, content=content.content, title=content.title, writer=db_user.username)
+
+    keyword_sentence = content.title + " " + content.content
+    analyzer.create_keywords(contents=keyword_sentence, db=db)
     # database session에 db_user 정보 추가
     db.add(db_content)
     # db에 반영
@@ -30,3 +32,11 @@ def create_content(db: Session, content: schemas.ContentCreate):
     # 최신 db 정보 
     db.refresh(db_content)
     return db_content
+
+def create_all_keywords(db: Session):
+    contents = get_content(db=db)
+    for c in contents:
+        keyword_sentence = c.title + " " + c.content
+        analyzer.create_keywords(contents=keyword_sentence, db=db)
+
+    return True
