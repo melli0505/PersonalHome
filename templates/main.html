@@ -17,6 +17,11 @@
       integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
       crossorigin="anonymous"
     ></script>
+
+    <link
+      rel="stylesheet"
+      href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css"
+    />
   </head>
 
   <body>
@@ -95,14 +100,22 @@
         </div>
         <div class="container">
           <form class="d-flex search-form">
-            <input
-              class="form-control query"
-              type="search"
-              placeholder="Search"
-              aria-label="Search"
-              style="margin-right: 10px"
-            />
-            <button class="btn btn-outline-success" type="submit">
+            <div class="container">
+              <input
+                class="form-control query"
+                id="search-input"
+                type="search"
+                placeholder="Search"
+                aria-label="Search"
+                style="margin-right: 10px"
+              />
+              <ul id="result"></ul>
+            </div>
+            <button
+              class="btn btn-outline-success"
+              style="margin-bottom: 16px"
+              type="submit"
+            >
               Search
             </button>
           </form>
@@ -114,6 +127,7 @@
     <script src="../static/js/bootstrap.min.js"></script>
     <script src="../static/js/main.js"></script>
     <script src="../static/js/jquery.cookie.js"></script>
+    <script src="//code.jquery.com/ui/1.13.0/jquery-ui.js"></script>
     <script type="text/javascript">
       // var data = [];
       $(document).ready(function () {
@@ -141,6 +155,32 @@
 
         $("#add-new").click(function () {
           location.href = "http://localhost:8000/post";
+        });
+
+        $("#search-input").autocomplete({
+          source: function (request, response) {
+            $.ajax({
+              url: "http://localhost:8000/api/suggestion?query=" + request.term,
+              method: "GET",
+              success: function (data) {
+                console.log(request.term);
+                console.log(data);
+                response(
+                  $.map(data["result"], function (item) {
+                    return {
+                      label: data["prefix-query"] + " " + item._source.keyword,
+                      id: item._source.id,
+                    };
+                  })
+                );
+                // return keywords;
+              },
+            });
+          },
+          select: function (event, ui) {
+            $(".search-form").submit();
+          },
+          minLength: 1,
         });
 
         function get_posts() {
@@ -172,6 +212,7 @@
             },
           });
         }
+
         $(".search-form").submit(function (event) {
           event.preventDefault();
           var query = new FormData();
@@ -180,6 +221,14 @@
 
           location.href = "http://localhost:8000/search-result?query=" + data;
         });
+      });
+
+      $(".result").on("click", "li", function () {
+        var query = new FormData();
+        query.append("query", $(".query").val());
+        var data = new URLSearchParams(query);
+
+        location.href = "http://localhost:8000/search-result?query=" + data;
       });
     </script>
   </body>

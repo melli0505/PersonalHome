@@ -66,15 +66,13 @@
     <script src="../static/js/jquery.cookie.js"></script>
     <script type="text/javascript">
       $(document).ready(function ($) {
-        var query = "{{ query }}";
-
-        console.log("try to search");
+        var query = "{{ query }}".split("=")[1];
+        var url = "http://localhost:8000/api/search?query=" + query;
         $.ajax({
-          url: "http://localhost:8000/search?" + query,
+          url: url,
           method: "GET",
           success: function (response) {
             var contents = response["result"];
-            console.log(contents, contents.length);
             $(".card-title").replaceWith(
               '<h5 class="card-title">Search Result (' +
                 String(contents.length) +
