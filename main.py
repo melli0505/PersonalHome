@@ -1,21 +1,24 @@
 from typing import List, Union
 from typing_extensions import Annotated
 
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.orm import Session
-from elasticsearch import Elasticsearch # , RequestsHttpConnection
-from elasticsearch_dsl import Search, Q, Index
 
 from core.db import models, schemas
 from core.db.base import SessionLocal, engine
 from core.user import user_router, user_crud
-from core.data import data_router
+from core.data import data_router, data_crud
 from core.utils import utils
+
+from core.utils.elasticsearch import es
+from core.utils.logger import logger
+from elasticsearch_dsl import Search
+
 
 def get_db():
     db = SessionLocal()
@@ -27,7 +30,6 @@ def get_db():
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-es = Elasticsearch([{'host': 'localhost', 'port': 9200, 'scheme': "https"}], http_auth=('elastic', 'elastic'), verify_certs=False)
 
 templates = Jinja2Templates(directory="templates")
 
@@ -53,7 +55,7 @@ app.add_middleware(
 
 @app.get('/')#, response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse("main.html", {"request": request})
+    return templates.TemplateResponse("main.html", {"request": request}) 
 
 @app.get('/signup')
 def signup(request: Request):
@@ -79,20 +81,45 @@ def show_post(post_id: int, request: Request):
 def show_post(query: str, request: Request):
     return templates.TemplateResponse("search_result.html", {"request": request, "query": query})
     
-@app.get('/search')
+@app.get('/api/search')
 async def search(query: str):
+    logger.warning(query)
     s = Search(index="postgres", using=es)
+    
+    search_result = []
     s = s.query(
         'multi_match',
         query=query,
-        fields=["title", "content"],
-        operator="and"
+        fields=["title", "content", "title.search", "content.search"],
+        # type="phrase_prefix",
         )
     results = s.execute()
-    results = []
+
     for hit in s.scan():
-        results.append(hit)
-    return {"result": results} #.to_dict()}
+        search_result.append(hit)
+
+    logger.warning(search_result)
+    return {"result": search_result, "query":query} 
+
+
+@app.get('/api/suggestion')
+async def get_suggest(query: str):
+    last_response = es.search(
+        index="keyword",
+        body={
+            "suggest": {
+                "search-suggestion": {
+                    "prefix": query.split()[-1],
+                    "completion": {
+                        "field": "keyword.suggest"
+                    }
+                }
+            }
+        }
+    )
+    last_suggestions = last_response['suggest']['search-suggestion'][0]['options']
+    
+    return {"result": last_suggestions, "prefix-query": query.split()[:-1]}
 
 
 # login
@@ -119,3 +146,7 @@ async def get_me(user: models.User = Depends(utils.get_current_user)):
 @app.get('/api/')
 def root():
     return {"message": "This is backend side API section."}
+
+@app.get('/api/create_all_keywords')
+async def create_all_keywords(db: Session = Depends(get_db)):
+    return data_crud.create_all_keywords(db=db)
